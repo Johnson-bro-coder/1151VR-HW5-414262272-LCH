@@ -282,7 +282,17 @@ public static class HW5SceneBuilder
         terrainGo.transform.position = new Vector3(-width / 2f, 0, -20);
 
         Terrain terrain = terrainGo.GetComponent<Terrain>();
-        terrain.materialTemplate = null; // 採用 Unity 內建標準地形材質
+        Material defaultTerrainMat = AssetDatabase.GetBuiltinExtraResource<Material>("Default-Terrain-Standard.mat");
+        if (defaultTerrainMat != null)
+        {
+            terrain.materialTemplate = defaultTerrainMat;
+        }
+        else
+        {
+            Shader s = Shader.Find("Nature/Terrain/Standard");
+            if (s == null) s = Shader.Find("Nature/Terrain/Diffuse");
+            if (s != null) terrain.materialTemplate = new Material(s);
+        }
         terrain.Flush();
 
         return terrainGo;
