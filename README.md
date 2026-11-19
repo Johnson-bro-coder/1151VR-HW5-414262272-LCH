@@ -1,34 +1,20 @@
 # 1151VR-HW5-414262272-LCH
 
-輔仁大學 資訊工程學系 虛擬實境遊戲設計 作業五：精靈球收服寶可夢 3D 遊戲 (Terrain & Physics)
+作業五：精靈球收服寶可夢 3D 遊戲 (Terrain & Physics)
 
 - **學生學號**：414262272
 - **學生姓名**：劉承勳
-- **指導教授**：胡臻騏 教授
-- **授課信箱**：cchu.fju@gmail.com
 
 ---
 
 ## 一、專案截圖
 
-### 1. 3D 場景全貌、訓練家與野生寶可夢對峙
-![3D 場景全貌與對峙](Docs/Screenshots/capture_gameplay.png)
-> 左側配置 3D 訓練家模型，右側為 3D 野生寶可夢模型，背後為使用 Unity Terrain 系統雕塑的連綿起伏山脈、岩石地貌與森林草地。
-
-### 2. 精靈球由左至右拋射彈飛軌跡 (Physics & Rigidbody)
-![精靈球由左至右拋出](Docs/Screenshots/pokeball_throw.png)
-> 遵循簡報物理投擲機制（6-4、6-6 節），精靈球掛載 Rigidbody 與 Sphere Collider，由左側訓練家身前計算拋物線力道，流暢地由左向右劃過空中飛向寶可夢。
-
-### 3. 命中寶可夢觸發飛濺粒子特效與成功收服
-![命中寶可夢收服特效](Docs/Screenshots/capture_success.png)
-> 命中瞬間觸發 ParticleSystem 飛濺粒子特效爆發（6-5 節），精靈球切換為 Kinematic 停在受擊點，寶可夢旋轉縮小吸入球中，隨後精靈球落回草地進行三次晃動判定並發出勝利星芒！
 
 ---
 
 ## 二、GitHub 連結
 
 - **GitHub Repository**: https://github.com/Johnson-bro-coder/1151VR-HW5-414262272-LCH
-- **已共享協作者**：cchu.fju@gmail.com
 
 ---
 
