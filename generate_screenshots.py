@@ -54,17 +54,8 @@ def create_base_canvas():
         
     return img, draw
 
-def draw_hud(draw, status_text, is_success=False):
-    # Top HUD Bar
-    draw.rectangle([40, 20, width - 40, 110], fill=(20, 25, 30))
-    draw.rectangle([40, 20, width - 40, 110], outline=(70, 80, 95), width=2)
-    
-    # Title
-    draw.text((width // 2 - 270, 30), "1151VR 作業五：精靈球收服寶可夢 3D 遊戲 (Terrain & Physics)", fill=(255, 215, 0))
-    # Status
-    color = (80, 240, 120) if is_success else (240, 240, 240)
-    draw.text((width // 2 - 230, 68), status_text, fill=color)
-    
+def draw_hud(draw, status_text=None, is_success=False):
+    # 依使用者需求，完全移除最上面的字與黑框，只保留底部操作按鈕
     # Bottom Buttons
     draw.rectangle([width // 2 - 220, height - 65, width // 2 - 20, height - 20], fill=(30, 120, 220), outline=(255, 255, 255), width=2)
     draw.text((width // 2 - 200, height - 50), "拋出精靈球 (由左至右)", fill=(255, 255, 255))

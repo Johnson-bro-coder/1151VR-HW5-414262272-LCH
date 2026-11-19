@@ -287,7 +287,7 @@ public static class HW5SceneBuilder
             handBall = Object.Instantiate(ballPrefab, shoulderPivot.transform);
             handBall.name = "HandBall";
             handBall.transform.localPosition = new Vector3(0f, -0.60f, 0.22f);
-            handBall.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+            handBall.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f);
             handBall.transform.localRotation = Quaternion.identity;
 
             Renderer[] rends = handBall.GetComponentsInChildren<Renderer>();
@@ -361,6 +361,7 @@ public static class HW5SceneBuilder
             visual.name = "VisualModel";
             visual.transform.localPosition = Vector3.zero;
             visual.transform.localRotation = Quaternion.identity;
+            visual.transform.localScale = new Vector3(0.25f, 0.25f, 0.25f); // 縮小為掌心標準精靈球尺寸
 
             Renderer[] rends = visual.GetComponentsInChildren<Renderer>();
             foreach (var r in rends)
@@ -374,15 +375,15 @@ public static class HW5SceneBuilder
 
         // Rigidbody 物理
         Rigidbody rb = ball.AddComponent<Rigidbody>();
-        rb.mass = 0.35f;
-        rb.linearDamping = 0.05f;
-        rb.angularDamping = 0.1f;
+        rb.mass = 0.25f;
+        rb.linearDamping = 0.02f;
+        rb.angularDamping = 0.05f;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        // SphereCollider
+        // SphereCollider (精準匹配縮小後的球體半徑)
         SphereCollider sc = ball.AddComponent<SphereCollider>();
         sc.center = Vector3.zero;
-        sc.radius = 0.4f;
+        sc.radius = 0.12f;
 
         // 粒子特效 (ParticleSystem 飛濺特效，對應簡報 6-5-2)
         ParticleSystem ps = ball.AddComponent<ParticleSystem>();
@@ -390,8 +391,8 @@ public static class HW5SceneBuilder
         main.duration = 1.0f;
         main.loop = false;
         main.startLifetime = 0.8f;
-        main.startSpeed = 4.5f;
-        main.startSize = 0.25f;
+        main.startSpeed = 3.5f;
+        main.startSize = 0.15f;
         main.startColor = new Color(1f, 0.9f, 0.3f);
         main.playOnAwake = false;
 

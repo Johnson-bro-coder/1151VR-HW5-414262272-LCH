@@ -17,14 +17,13 @@ public class PokeballController : MonoBehaviour
         hitParticles = GetComponent<ParticleSystem>();
     }
 
-    public void Shoot(Vector3 dir)
+    public void Shoot(Vector3 velocity)
     {
         if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(dir);
-            // 拋出時給予自轉扭矩，增加飛行旋轉真實感
-            rb.AddTorque(new Vector3(Random.Range(5f, 15f), Random.Range(5f, 15f), Random.Range(5f, 15f)), ForceMode.Impulse);
+            rb.linearVelocity = velocity;
+            rb.angularVelocity = new Vector3(Random.Range(5f, 12f), Random.Range(3f, 8f), Random.Range(5f, 12f));
         }
 
         if (AudioManager.Instance != null)
@@ -35,15 +34,21 @@ public class PokeballController : MonoBehaviour
 
     private void OnCollisionEnter(Collision other)
     {
+        // 絕對忽略與訓練家任何部位的碰撞
+        if (other.gameObject.name.Contains("Trainer") || other.transform.root.name.Contains("Trainer"))
+        {
+            return;
+        }
+
         if (hasCollided) return;
         hasCollided = true;
 
         // 1. 停用物理計算，固定在撞擊點（同簡報 6-4-6）
         if (rb != null)
         {
-            rb.isKinematic = true;
-            rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
+            rb.linearVelocity = Vector3.zero;
+            rb.isKinematic = true;
         }
 
         // 2. 播放碰撞粒子特效（同簡報 6-5-2）
@@ -87,8 +92,8 @@ public class PokeballController : MonoBehaviour
         pokemon.OnCaptureHit(transform.position);
         yield return new WaitForSeconds(0.9f);
 
-        // 精靈球稍微落到地面草皮上準備搖晃判定
-        Vector3 groundPos = new Vector3(transform.position.x, 0.4f, transform.position.z);
+        // 精靈球稍微落到地面草皮上準備搖晃判定 (球半徑約 0.1m)
+        Vector3 groundPos = new Vector3(transform.position.x, 0.12f, transform.position.z);
         float dropTime = 0.3f;
         float elapsed = 0f;
         Vector3 startDrop = transform.position;
