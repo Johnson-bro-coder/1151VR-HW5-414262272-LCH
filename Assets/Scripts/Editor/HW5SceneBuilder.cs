@@ -12,7 +12,6 @@ public static class HW5SceneBuilder
     {
         Debug.Log("Starting automated build for HW5 Pokemon Capture Scene...");
 
-        // 確保目錄存在
         EnsureDirectory("Assets/Prefabs");
         EnsureDirectory("Assets/Scenes");
         EnsureDirectory("Assets/Materials");
@@ -29,20 +28,20 @@ public static class HW5SceneBuilder
         Material skinMat = CreateColorMaterial("Mat_Skin", new Color(0.98f, 0.82f, 0.70f));
         Material greenMat = CreateColorMaterial("Mat_Green", new Color(0.2f, 0.65f, 0.25f));
         Material woodMat = CreateColorMaterial("Mat_Wood", new Color(0.45f, 0.28f, 0.15f));
-        Material foliageMat = CreateColorMaterial("Mat_Foliage", new Color(0.22f, 0.55f, 0.25f));
+        Material foliageMat = CreateColorMaterial("Mat_Foliage", new Color(0.18f, 0.52f, 0.22f));
 
         // 3. 調整定向光源 (Directional Light)
         Light dirLight = Object.FindFirstObjectByType<Light>();
         if (dirLight != null)
         {
             dirLight.name = "Directional Light";
-            dirLight.transform.rotation = Quaternion.Euler(45f, -35f, 0f);
+            dirLight.transform.rotation = Quaternion.Euler(42f, -32f, 0f);
             dirLight.color = new Color(1f, 0.96f, 0.88f);
-            dirLight.intensity = 1.3f;
+            dirLight.intensity = 1.35f;
             dirLight.shadows = LightShadows.Soft;
         }
 
-        // 4. 建立與生成 Terrain (依據簡報 6-3 節)
+        // 4. 建立與生成 Terrain (依據簡報 6-3 節，有連綿起伏山脈與鮮明草地岩石紋理)
         GameObject terrainObj = CreateCustomTerrain();
 
         // 5. 建立音效管理器 (AudioManager)
@@ -59,7 +58,7 @@ public static class HW5SceneBuilder
         // 7. 載入並配置 3D 寶可夢模型 (右側)
         GameObject pokemonObj = SetupPokemon(yellowMat, redMat, blackMat);
 
-        // 8. 建立精靈球 Prefab (PokeballPrefab) 包含 Rigidbody, Collider, ParticleSystem
+        // 8. 建立精靈球 Prefab (PokeballPrefab) 包含 Rigidbody, Collider, 發光粒子特效
         GameObject pokeballPrefab = CreatePokeballPrefab(redMat, whiteMat, blackMat);
 
         // 9. 建立拋球產生器 (PokeballGenerator)
@@ -79,16 +78,16 @@ public static class HW5SceneBuilder
         director.generator = generator;
         director.pokemon = pokemonObj.GetComponent<PokemonTarget>();
 
-        // 11. 在場景兩側及背景種植美麗樹木
+        // 11. 在山腳與視野兩側種植自然美觀的 3D 樹木 (遵循簡報 49-50 頁)
         PlantSceneTrees(woodMat, foliageMat);
 
-        // 12. 調整主攝影機位置 (正面視角清楚展示訓練家、精靈球由左至右軌跡、寶可夢與山脈背景)
+        // 12. 調整主攝影機位置 (遵循簡報 6-3-5 節，稍微俯瞰展示開闊草坪與後方壯麗起伏山嶺)
         Camera mainCam = Camera.main;
         if (mainCam != null)
         {
             mainCam.name = "Main Camera";
-            mainCam.transform.position = new Vector3(0f, 2.2f, -1.5f);
-            mainCam.transform.rotation = Quaternion.Euler(12f, 0f, 0f);
+            mainCam.transform.position = new Vector3(0f, 3.2f, -4.5f);
+            mainCam.transform.rotation = Quaternion.Euler(14f, 0f, 0f);
             mainCam.fieldOfView = 60f;
         }
 
@@ -138,59 +137,123 @@ public static class HW5SceneBuilder
         return mat;
     }
 
+    private static Material GetOrCreateParticleMaterial()
+    {
+        string path = "Assets/Materials/Mat_ParticleGlow.mat";
+        Material mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+        Texture2D glowTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/ParticleGlow.png");
+
+        Shader s = Shader.Find("Mobile/Particles/Additive");
+        if (s == null) s = Shader.Find("Particles/Standard Unlit");
+        if (s == null) s = Shader.Find("Sprites/Default");
+        if (s == null) s = Shader.Find("Legacy Shaders/Particles/Additive");
+
+        if (mat == null)
+        {
+            mat = new Material(s);
+            if (glowTex != null) mat.mainTexture = glowTex;
+            mat.color = new Color(1f, 0.92f, 0.35f, 1f);
+            AssetDatabase.CreateAsset(mat, path);
+        }
+        else
+        {
+            mat.shader = s;
+            if (glowTex != null) mat.mainTexture = glowTex;
+            mat.color = new Color(1f, 0.92f, 0.35f, 1f);
+            EditorUtility.SetDirty(mat);
+        }
+        return mat;
+    }
+
     private static GameObject CreateCustomTerrain()
     {
-        int width = 250;
-        int length = 250;
-        int height = 35;
+        int width = 160;
+        int length = 160;
+        int height = 48; // 最高山峰 48 米，高聳壯麗
         int resolution = 129;
 
-        TerrainData tData = new TerrainData();
+        string terrainDataPath = "Assets/Materials/NewTerrainData.asset";
+        TerrainData tData = AssetDatabase.LoadAssetAtPath<TerrainData>(terrainDataPath);
+        if (tData == null)
+        {
+            tData = new TerrainData();
+            AssetDatabase.CreateAsset(tData, terrainDataPath);
+        }
+
         tData.heightmapResolution = resolution;
         tData.size = new Vector3(width, height, length);
 
-        // 生成山脈起伏高度圖 (背景 +Z 方向隆起山峰，中央平原平坦)
+        // 生成山脈高度圖：
+        // 地形在 Z 軸位置從 -20 開始，長度 160。
+        // 訓練家與寶可夢在 Z = 5 (normY ≈ 0.156)。
+        // 從 normY = 0.20 (Z = 12) 開始拔地而起，後方形成起伏連綿的群峰！
         float[,] heights = new float[resolution, resolution];
         for (int x = 0; x < resolution; x++)
         {
             for (int y = 0; y < resolution; y++)
             {
-                float normX = (float)x / resolution;
-                float normY = (float)y / resolution; // Y 對應 Z 方向
+                float normX = (float)x / (resolution - 1);
+                float normY = (float)y / (resolution - 1); // 對應 Z 深度方向
 
-                // 在 Z > 0.45 區域形成雄偉起伏山脈
-                if (normY > 0.40f)
+                if (normY > 0.19f)
                 {
-                    float mountainFactor = Mathf.SmoothStep(0f, 1f, (normY - 0.40f) / 0.60f);
-                    float wave1 = Mathf.Sin(normX * 12f) * 0.4f + 0.4f;
-                    float wave2 = Mathf.Cos(normX * 24f + normY * 10f) * 0.2f;
-                    float wave3 = Mathf.PerlinNoise(normX * 6f, normY * 6f) * 0.5f;
-                    heights[y, x] = (wave1 + wave2 + wave3) * mountainFactor * 0.75f;
+                    float mountainFactor = Mathf.SmoothStep(0f, 1f, (normY - 0.19f) / 0.55f);
+                    // 連綿起伏山嶺
+                    float peak1 = Mathf.Sin(normX * Mathf.PI * 3f) * 0.38f + 0.42f;
+                    float peak2 = Mathf.Cos(normX * Mathf.PI * 6f + normY * 4f) * 0.18f;
+                    float noise = Mathf.PerlinNoise(normX * 6f, normY * 6f) * 0.35f;
+
+                    // 左右山脊環抱，視野中央略低以呈現層疊遠山
+                    float valleyShape = Mathf.Abs(normX - 0.5f) * 0.5f + 0.65f;
+                    heights[y, x] = Mathf.Clamp01((peak1 + peak2 + noise) * mountainFactor * valleyShape);
                 }
                 else
                 {
-                    // 平原帶有些微自然起伏 (0.01)
-                    heights[y, x] = Mathf.PerlinNoise(normX * 10f, normY * 10f) * 0.008f;
+                    heights[y, x] = 0f;
                 }
             }
         }
         tData.SetHeights(0, 0, heights);
 
-        // 設定地表紋理 Layer (Grass & Rock)
+        // 建立並儲存實體 TerrainLayer 資產（徹底消滅 Missing Layer 的白灰西洋棋盤！）
         Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/GrassTexture.png");
         Texture2D rockTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/RockTexture.png");
 
-        TerrainLayer grassLayer = new TerrainLayer();
-        grassLayer.diffuseTexture = grassTex;
-        grassLayer.tileSize = new Vector2(10, 10);
+        string grassLayerPath = "Assets/Materials/GrassLayer.terrainlayer";
+        TerrainLayer grassLayer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(grassLayerPath);
+        if (grassLayer == null)
+        {
+            grassLayer = new TerrainLayer();
+            grassLayer.diffuseTexture = grassTex;
+            grassLayer.tileSize = new Vector2(8, 8);
+            AssetDatabase.CreateAsset(grassLayer, grassLayerPath);
+        }
+        else
+        {
+            grassLayer.diffuseTexture = grassTex;
+            grassLayer.tileSize = new Vector2(8, 8);
+            EditorUtility.SetDirty(grassLayer);
+        }
 
-        TerrainLayer rockLayer = new TerrainLayer();
-        rockLayer.diffuseTexture = rockTex;
-        rockLayer.tileSize = new Vector2(15, 15);
+        string rockLayerPath = "Assets/Materials/RockLayer.terrainlayer";
+        TerrainLayer rockLayer = AssetDatabase.LoadAssetAtPath<TerrainLayer>(rockLayerPath);
+        if (rockLayer == null)
+        {
+            rockLayer = new TerrainLayer();
+            rockLayer.diffuseTexture = rockTex;
+            rockLayer.tileSize = new Vector2(10, 10);
+            AssetDatabase.CreateAsset(rockLayer, rockLayerPath);
+        }
+        else
+        {
+            rockLayer.diffuseTexture = rockTex;
+            rockLayer.tileSize = new Vector2(10, 10);
+            EditorUtility.SetDirty(rockLayer);
+        }
 
         tData.terrainLayers = new TerrainLayer[] { grassLayer, rockLayer };
 
-        // 刷上山體岩石紋理 (Alphamap)
+        // 刷上山體岩石紋理 (Alphamap)：平原與山腳滿鋪翠綠草地，山嶺與山峰刷上岩石
         int alphaRes = tData.alphamapResolution;
         float[,,] alphaMaps = new float[alphaRes, alphaRes, 2];
         for (int y = 0; y < alphaRes; y++)
@@ -198,27 +261,30 @@ public static class HW5SceneBuilder
             for (int x = 0; x < alphaRes; x++)
             {
                 float normY = (float)y / alphaRes;
-                if (normY > 0.60f)
+                if (normY > 0.35f)
                 {
-                    float rockBlend = Mathf.Clamp01((normY - 0.60f) / 0.35f);
+                    float rockBlend = Mathf.Clamp01((normY - 0.35f) / 0.30f);
                     alphaMaps[y, x, 0] = 1f - rockBlend; // Grass
                     alphaMaps[y, x, 1] = rockBlend;      // Rock
                 }
                 else
                 {
-                    alphaMaps[y, x, 0] = 1f;
+                    alphaMaps[y, x, 0] = 1f; // 100% 翠綠草地
                     alphaMaps[y, x, 1] = 0f;
                 }
             }
         }
         tData.SetAlphamaps(0, 0, alphaMaps);
-
-        AssetDatabase.CreateAsset(tData, "Assets/Materials/NewTerrainData.asset");
+        EditorUtility.SetDirty(tData);
 
         GameObject terrainGo = Terrain.CreateTerrainGameObject(tData);
         terrainGo.name = "Terrain";
-        // 居中對齊 (平原中心位於 (0, 0, 0))
         terrainGo.transform.position = new Vector3(-width / 2f, 0, -20);
+
+        Terrain terrain = terrainGo.GetComponent<Terrain>();
+        terrain.materialTemplate = null; // 採用 Unity 內建標準地形材質
+        terrain.Flush();
+
         return terrainGo;
     }
 
@@ -259,7 +325,7 @@ public static class HW5SceneBuilder
         GameObject shoulderPivot = new GameObject("RightShoulderPivot");
         shoulderPivot.transform.SetParent(trainerRoot.transform, false);
         shoulderPivot.transform.localPosition = new Vector3(0.42f, 1.45f, 0.0f);
-        shoulderPivot.transform.localRotation = Quaternion.Euler(15f, 10f, 15f); // 自然垂放微擺
+        shoulderPivot.transform.localRotation = Quaternion.Euler(15f, 10f, 15f);
 
         // 3. 右手臂與手套
         GameObject armPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Trainer_RightArm.obj");
@@ -279,7 +345,7 @@ public static class HW5SceneBuilder
             }
         }
 
-        // 4. 手中持有的展示用小精靈球
+        // 4. 手中持有的展示用小精靈球 (掌心大小 0.25)
         GameObject ballPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Pokeball.obj");
         GameObject handBall = null;
         if (ballPrefab != null)
@@ -323,7 +389,7 @@ public static class HW5SceneBuilder
     {
         GameObject pokemonRoot = new GameObject("Pokemon_Pikachu");
         pokemonRoot.transform.position = new Vector3(3.8f, 0f, 5.0f);
-        pokemonRoot.transform.rotation = Quaternion.Euler(0, -45f, 0); // 面向左側訓練家
+        pokemonRoot.transform.rotation = Quaternion.Euler(0, -45f, 0);
 
         GameObject pokeModelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Pokemon.obj");
         if (pokeModelPrefab != null)
@@ -380,20 +446,26 @@ public static class HW5SceneBuilder
         rb.angularDamping = 0.05f;
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        // SphereCollider (精準匹配縮小後的球體半徑)
+        // SphereCollider
         SphereCollider sc = ball.AddComponent<SphereCollider>();
         sc.center = Vector3.zero;
         sc.radius = 0.12f;
 
+        // 取得專屬發光粒子材質 (徹底解決洋紅色 Missing Material 破圖！)
+        Material particleMat = GetOrCreateParticleMaterial();
+
         // 粒子特效 (ParticleSystem 飛濺特效，對應簡報 6-5-2)
         ParticleSystem ps = ball.AddComponent<ParticleSystem>();
+        ParticleSystemRenderer psRenderer = ball.GetComponent<ParticleSystemRenderer>();
+        if (psRenderer != null) psRenderer.material = particleMat;
+
         var main = ps.main;
         main.duration = 1.0f;
         main.loop = false;
         main.startLifetime = 0.8f;
-        main.startSpeed = 3.5f;
-        main.startSize = 0.15f;
-        main.startColor = new Color(1f, 0.9f, 0.3f);
+        main.startSpeed = 4.0f;
+        main.startSize = 0.22f;
+        main.startColor = new Color(1f, 0.95f, 0.3f, 1f);
         main.playOnAwake = false;
 
         var emission = ps.emission;
@@ -402,7 +474,7 @@ public static class HW5SceneBuilder
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 0.05f;
+        shape.radius = 0.06f;
 
         var sizeOverLifetime = ps.sizeOverLifetime;
         sizeOverLifetime.enabled = true;
@@ -419,17 +491,20 @@ public static class HW5SceneBuilder
         starsObj.transform.SetParent(ball.transform);
         starsObj.transform.localPosition = Vector3.zero;
         ParticleSystem starsPs = starsObj.AddComponent<ParticleSystem>();
+        ParticleSystemRenderer starsRenderer = starsObj.GetComponent<ParticleSystemRenderer>();
+        if (starsRenderer != null) starsRenderer.material = particleMat;
+
         var sMain = starsPs.main;
         sMain.duration = 1.2f;
         sMain.loop = false;
         sMain.startLifetime = 1.0f;
-        sMain.startSpeed = 3.0f;
-        sMain.startSize = 0.35f;
-        sMain.startColor = new Color(0.2f, 1f, 0.5f);
+        sMain.startSpeed = 3.5f;
+        sMain.startSize = 0.30f;
+        sMain.startColor = new Color(0.3f, 1f, 0.6f, 1f);
         sMain.playOnAwake = false;
         var sEmission = starsPs.emission;
         sEmission.rateOverTime = 0;
-        sEmission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0.0f, 30) });
+        sEmission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0.0f, 35) });
 
         controller.successStarsParticle = starsPs;
 
@@ -447,30 +522,41 @@ public static class HW5SceneBuilder
         if (treePrefab == null) return;
 
         GameObject treesParent = new GameObject("TreesContainer");
+        Terrain terrain = Object.FindFirstObjectByType<Terrain>();
 
-        // 在山腳、左側與右側後方自然錯落種植樹木
+        // 遵循簡報 49-50 頁：樹木分佈在兩側山坡以及後方山腳，中央完全開闊露出山脈與精靈球拋物線！
         Vector3[] treePositions = new Vector3[]
         {
-            new Vector3(-8.5f, 0f, 8.5f),
-            new Vector3(-6.2f, 0f, 12f),
-            new Vector3(-10.5f, 0f, 15f),
-            new Vector3(-3.5f, 0f, 14f),
-            new Vector3(0f, 0f, 15f),
-            new Vector3(3.5f, 0f, 14f),
-            new Vector3(6.5f, 0f, 11f),
-            new Vector3(8.8f, 0f, 8.0f),
-            new Vector3(10.5f, 0f, 14f),
-            new Vector3(-1.8f, 0f, 17f),
-            new Vector3(2.0f, 0f, 18f),
-            new Vector3(-5.0f, 0f, 19f),
-            new Vector3(5.0f, 0f, 19f),
+            // 左側山林
+            new Vector3(-9.5f, 0f, 10f),
+            new Vector3(-13.0f, 0f, 14f),
+            new Vector3(-7.5f, 0f, 16f),
+            new Vector3(-11.0f, 0f, 20f),
+            new Vector3(-14.5f, 0f, 24f),
+            // 右側山林
+            new Vector3(9.5f, 0f, 10f),
+            new Vector3(13.0f, 0f, 14f),
+            new Vector3(7.5f, 0f, 16f),
+            new Vector3(11.0f, 0f, 20f),
+            new Vector3(14.5f, 0f, 24f),
+            // 後方山腳景深 (兩側)
+            new Vector3(-5.0f, 0f, 22f),
+            new Vector3(5.0f, 0f, 22f),
+            new Vector3(-3.0f, 0f, 27f),
+            new Vector3(3.0f, 0f, 27f),
         };
 
         for (int i = 0; i < treePositions.Length; i++)
         {
-            GameObject tree = Object.Instantiate(treePrefab, treePositions[i], Quaternion.Euler(0, Random.Range(0, 360), 0), treesParent.transform);
+            Vector3 pos = treePositions[i];
+            if (terrain != null)
+            {
+                pos.y = terrain.SampleHeight(pos); // 自動貼合地表高度，絕不浮空
+            }
+
+            GameObject tree = Object.Instantiate(treePrefab, pos, Quaternion.Euler(0, Random.Range(0, 360), 0), treesParent.transform);
             tree.name = $"Tree_{i + 1}";
-            float s = Random.Range(0.85f, 1.25f);
+            float s = Random.Range(0.9f, 1.3f);
             tree.transform.localScale = new Vector3(s, s, s);
 
             Renderer[] rends = tree.GetComponentsInChildren<Renderer>();

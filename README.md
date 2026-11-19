@@ -43,12 +43,13 @@
 
 ### 2. Terrain 地形與自然環境建構 (對應簡報 6-3 節)
 - **地形設置 (`CreateCustomTerrain`)**：
-  - 建立 250m × 250m 大面積 Terrain，高度上限為 35m。
-  - **山脈起伏雕塑 (Raise / Lower Terrain)**：在畫面縱深背景 (+Z 方向) 結合正弦複合波與 Perlin 噪聲，生成層次分明、連綿壯麗的立體群山，前方平原保持平緩綠地。
+  - 建立 160m × 160m 大面積 Terrain，高度上限為 48m。
+  - **山脈起伏雕塑 (Raise / Lower Terrain)**：自視野背景縱深 Z ≥ 12 處拔地而起，結合正弦複合波與 Perlin 噪聲，雕塑出左右環抱、中央層疊起伏的立體雄偉群峰，前方平原保持平緩綠地。
   - **地表材質繪製 (Paint Texture & Layers)**：
-    - 第一層：`GrassTexture.png`（翠綠草地紋理，滿鋪平原與山腳）。
-    - 第二層：`RockTexture.png`（山體岩石紋理，運用 Alphamap 刷在山脊與陡峭山峰）。
-  - **樹木種植 (Paint Trees)**：在山腳兩側與背景地段自然散佈多棵 3D 樹木，營造豐富的生動自然景深。
+    - 第一層：`GrassLayer.terrainlayer`（翠綠草地紋理，滿鋪平原與山腳）。
+    - 第二層：`RockLayer.terrainlayer`（山體岩石紋理，運用 Alphamap 刷在山脊與陡峭山峰）。
+    - 獨立保存實體 `.terrainlayer` 資產，徹底解決未持久化造成的預設灰白棋盤破圖。
+  - **樹木種植 (Paint Trees)**：遵循簡報 49-50 頁佈局，在左右兩側山林與背景山腳錯落種植多棵 3D 樹木（高度自動採樣 `terrain.SampleHeight` 貼合地表），中央視野保持開闊，完美展現連綿山景與精靈球投擲拋物線。
 
 ---
 
@@ -87,11 +88,12 @@
 
 ### 5. 碰撞判定、收服動畫與飛濺粒子特效 (對應簡報 6-4-6、6-5 節)
 - **剛體凍結與特效釋出 (`OnCollisionEnter`)**：
-  - 撞擊瞬間將剛體設為 `isKinematic = true`，使球固定於碰撞點，避免無效彈跳。
-  - 立即觸發 `ParticleSystem.Play()` 播放飛濺粒子特效：
-    - **Burst 特效**：單次瞬間釋放 45 顆粒子，初速為 4.5。
+  - 撞擊瞬間將剛體設為 `isKinematic = true`（設定前清除角動量與線動量，避免 Unity 警告），使球固定於碰撞點。
+  - 立即觸發 `ParticleSystem.Play()` 播放金色飛濺粒子特效：
+    - **Burst 特效**：單次瞬間釋放 45 顆粒子，初速為 4.0。
+    - **專屬發光材質 (`Mat_ParticleGlow.mat`)**：採用 Additive / Unlit 發光材質與金光光暈貼圖，杜絕缺失材質呈現的洋紅色粉紅方塊破圖。
     - **Size over Lifetime**：粒子大小隨時間從 1.0 依曲線平滑衰減至 0.0。
-    - **Shape**：球形發射源 (Sphere, Radius = 0.05)。
+    - **Shape**：球形發射源 (Sphere, Radius = 0.06)。
 - **寶可夢收服吸收動畫 (`PokemonTarget.cs`)**：
   - 寶可夢受到碰撞後，啟動吸收協程 `AbsorbIntoBallRoutine`，在 0.8 秒內旋轉並縮小 scale 至 0，平滑收納進精靈球中。
 - **精靈球搖晃判定與成功特效**：
