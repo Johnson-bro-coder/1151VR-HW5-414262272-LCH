@@ -6,14 +6,15 @@ public class PokeballGenerator : MonoBehaviour
     public GameObject pokeballPrefab;
 
     [Header("Left-To-Right Throw Configuration")]
-    public Transform throwOrigin;     // 左側訓練家右手發射點
-    public Transform targetPokemon;   // 右側寶可夢目標點
+    public Transform throwOrigin;          // 左側訓練家右手發射點
+    public Transform targetPokemon;        // 右側寶可夢目標點
+    public TrainerController trainerController; // 訓練家動作控制器
     public float throwArcHeight = 3.5f;
     public float throwSpeed = 1.0f;
 
     [Header("Auto Demonstration")]
     public bool autoThrowOnStart = true;
-    public float autoThrowDelay = 1.0f;
+    public float autoThrowDelay = 1.2f;
 
     private void Start()
     {
@@ -28,12 +29,12 @@ public class PokeballGenerator : MonoBehaviour
         // 點擊滑鼠左鍵或手機螢幕觸碰拋球 (同簡報 6-6-5)
         if (Input.GetMouseButtonDown(0))
         {
-            // 若點擊在 UI 上則不重複觸發，或直接依滑鼠視角發射
+            // 若點擊在 UI 上由 GameDirector 處理，此處依射線或觸碰點發射
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             ThrowTowardsRay(ray);
         }
 
-        // 按空白鍵直接觸發標準「由左至右」弧線拋出
+        // 按空白鍵直接觸發標準「由左至右」弧線拋出 (含訓練家揮臂動作)
         if (Input.GetKeyDown(KeyCode.Space))
         {
             ThrowLeftToRight();
@@ -41,14 +42,32 @@ public class PokeballGenerator : MonoBehaviour
     }
 
     /// <summary>
-    /// 精靈球由左至右拋出收服寶可夢 (作業核心要求)
+    /// 精靈球由左至右拋出收服寶可夢 (作業核心要求：訓練家先揮臂動作，在出手點釋放球)
     /// </summary>
     public void ThrowLeftToRight()
     {
         if (pokeballPrefab == null) return;
 
-        Vector3 startPos = throwOrigin != null ? throwOrigin.position : new Vector3(-4.0f, 1.6f, 5.0f);
-        Vector3 targetPos = targetPokemon != null ? targetPokemon.position + Vector3.up * 0.7f : new Vector3(4.5f, 0.7f, 5.0f);
+        if (GameDirector.Instance != null)
+        {
+            GameDirector.Instance.SetStatus("訓練家蓄力揮臂拋出精靈球！");
+        }
+
+        // 若有綁定訓練家控制器，先播放投球動作動畫，在出手幀觸發實體拋射
+        if (trainerController != null)
+        {
+            trainerController.PlayThrowAnimation(ExecutePhysicalThrow);
+        }
+        else
+        {
+            ExecutePhysicalThrow();
+        }
+    }
+
+    private void ExecutePhysicalThrow()
+    {
+        Vector3 startPos = throwOrigin != null ? throwOrigin.position : new Vector3(-3.8f, 1.4f, 5.0f);
+        Vector3 targetPos = targetPokemon != null ? targetPokemon.position + Vector3.up * 0.7f : new Vector3(3.8f, 0.7f, 5.0f);
 
         GameObject ball = Instantiate(pokeballPrefab, startPos, Quaternion.identity);
         PokeballController controller = ball.GetComponent<PokeballController>();
@@ -60,11 +79,6 @@ public class PokeballGenerator : MonoBehaviour
         {
             controller.Shoot(force);
         }
-
-        if (GameDirector.Instance != null)
-        {
-            GameDirector.Instance.SetStatus("訓練家由左至右拋出精靈球！");
-        }
     }
 
     /// <summary>
@@ -74,14 +88,30 @@ public class PokeballGenerator : MonoBehaviour
     {
         if (pokeballPrefab == null) return;
 
-        Vector3 spawnPos = throwOrigin != null ? throwOrigin.position : Camera.main.transform.position + Camera.main.transform.forward * 0.8f;
-        GameObject ball = Instantiate(pokeballPrefab, spawnPos, Quaternion.identity);
-        PokeballController controller = ball.GetComponent<PokeballController>();
-
-        Vector3 worldDir = ray.direction;
-        if (controller != null)
+        if (trainerController != null)
         {
-            controller.Shoot(worldDir.normalized * 1200f);
+            trainerController.PlayThrowAnimation(() =>
+            {
+                Vector3 spawnPos = throwOrigin != null ? throwOrigin.position : Camera.main.transform.position + Camera.main.transform.forward * 0.8f;
+                GameObject ball = Instantiate(pokeballPrefab, spawnPos, Quaternion.identity);
+                PokeballController controller = ball.GetComponent<PokeballController>();
+                Vector3 worldDir = ray.direction;
+                if (controller != null)
+                {
+                    controller.Shoot(worldDir.normalized * 1200f);
+                }
+            });
+        }
+        else
+        {
+            Vector3 spawnPos = throwOrigin != null ? throwOrigin.position : Camera.main.transform.position + Camera.main.transform.forward * 0.8f;
+            GameObject ball = Instantiate(pokeballPrefab, spawnPos, Quaternion.identity);
+            PokeballController controller = ball.GetComponent<PokeballController>();
+            Vector3 worldDir = ray.direction;
+            if (controller != null)
+            {
+                controller.Shoot(worldDir.normalized * 1200f);
+            }
         }
     }
 
@@ -95,7 +125,6 @@ public class PokeballGenerator : MonoBehaviour
         dir.y = dist * Mathf.Tan(a);
         dist += h / Mathf.Tan(a);
 
-        // 克服重力計算速度
         float gravity = Mathf.Abs(Physics.gravity.y);
         float velocity = Mathf.Sqrt(dist * gravity / Mathf.Sin(2 * a));
         return velocity * dir.normalized * 50f; // 轉換為 AddForce 力道倍率

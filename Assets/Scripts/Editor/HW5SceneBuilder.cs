@@ -54,7 +54,7 @@ public static class HW5SceneBuilder
         audioMgr.successClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Audio/Pokeball_Success.wav");
 
         // 6. 載入並配置 3D 訓練家模型 (左側)
-        GameObject trainerObj = SetupTrainer(redMat, whiteMat, blueMat, skinMat, greenMat);
+        GameObject trainerObj = SetupTrainer(redMat, whiteMat, blackMat, blueMat, skinMat, greenMat);
 
         // 7. 載入並配置 3D 寶可夢模型 (右側)
         GameObject pokemonObj = SetupPokemon(yellowMat, redMat, blackMat);
@@ -66,9 +66,10 @@ public static class HW5SceneBuilder
         GameObject genObj = new GameObject("PokeballGenerator");
         PokeballGenerator generator = genObj.AddComponent<PokeballGenerator>();
         generator.pokeballPrefab = pokeballPrefab;
-        Transform throwHand = trainerObj.transform.Find("ThrowOrigin");
+        Transform throwHand = trainerObj.transform.Find("RightShoulderPivot/ThrowOrigin");
         generator.throwOrigin = throwHand != null ? throwHand : trainerObj.transform;
         generator.targetPokemon = pokemonObj.transform;
+        generator.trainerController = trainerObj.GetComponent<TrainerController>();
         generator.autoThrowOnStart = true;
         generator.autoThrowDelay = 1.2f;
 
@@ -221,22 +222,27 @@ public static class HW5SceneBuilder
         return terrainGo;
     }
 
-    private static GameObject SetupTrainer(Material redMat, Material whiteMat, Material blueMat, Material skinMat, Material greenMat)
+    private static GameObject SetupTrainer(Material redMat, Material whiteMat, Material blackMat, Material blueMat, Material skinMat, Material greenMat)
     {
         GameObject trainerRoot = new GameObject("Trainer_Ash");
         trainerRoot.transform.position = new Vector3(-3.8f, 0f, 5.0f);
         trainerRoot.transform.rotation = Quaternion.Euler(0, 35f, 0); // 面向右前方寶可夢
 
-        GameObject trainerModelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Trainer.obj");
-        if (trainerModelPrefab != null)
-        {
-            GameObject visual = Object.Instantiate(trainerModelPrefab, trainerRoot.transform);
-            visual.name = "VisualModel";
-            visual.transform.localPosition = Vector3.zero;
-            visual.transform.localRotation = Quaternion.identity;
+        // 1. 身體與頭腿軀幹
+        GameObject bodyObj = new GameObject("BodyVisual");
+        bodyObj.transform.SetParent(trainerRoot.transform, false);
 
-            // 依據子網格指派材質
-            Renderer[] rends = visual.GetComponentsInChildren<Renderer>();
+        GameObject bodyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Trainer_Body.obj");
+        if (bodyPrefab == null) bodyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Trainer.obj");
+
+        if (bodyPrefab != null)
+        {
+            GameObject bodyVisual = Object.Instantiate(bodyPrefab, bodyObj.transform);
+            bodyVisual.name = "BodyMesh";
+            bodyVisual.transform.localPosition = Vector3.zero;
+            bodyVisual.transform.localRotation = Quaternion.identity;
+
+            Renderer[] rends = bodyVisual.GetComponentsInChildren<Renderer>();
             foreach (var r in rends)
             {
                 string n = r.gameObject.name;
@@ -249,10 +255,61 @@ public static class HW5SceneBuilder
             }
         }
 
-        // 標記右手投球點
+        // 2. 右肩膀樞紐 (RightShoulderPivot)
+        GameObject shoulderPivot = new GameObject("RightShoulderPivot");
+        shoulderPivot.transform.SetParent(trainerRoot.transform, false);
+        shoulderPivot.transform.localPosition = new Vector3(0.42f, 1.45f, 0.0f);
+        shoulderPivot.transform.localRotation = Quaternion.Euler(15f, 10f, 15f); // 自然垂放微擺
+
+        // 3. 右手臂與手套
+        GameObject armPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Trainer_RightArm.obj");
+        if (armPrefab != null)
+        {
+            GameObject armVisual = Object.Instantiate(armPrefab, shoulderPivot.transform);
+            armVisual.name = "ArmMesh";
+            armVisual.transform.localPosition = Vector3.zero;
+            armVisual.transform.localRotation = Quaternion.identity;
+
+            Renderer[] rends = armVisual.GetComponentsInChildren<Renderer>();
+            foreach (var r in rends)
+            {
+                string n = r.gameObject.name;
+                if (n.Contains("Glove")) r.material = greenMat;
+                else r.material = blueMat;
+            }
+        }
+
+        // 4. 手中持有的展示用小精靈球
+        GameObject ballPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Models/Pokeball.obj");
+        GameObject handBall = null;
+        if (ballPrefab != null)
+        {
+            handBall = Object.Instantiate(ballPrefab, shoulderPivot.transform);
+            handBall.name = "HandBall";
+            handBall.transform.localPosition = new Vector3(0f, -0.60f, 0.22f);
+            handBall.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
+            handBall.transform.localRotation = Quaternion.identity;
+
+            Renderer[] rends = handBall.GetComponentsInChildren<Renderer>();
+            foreach (var r in rends)
+            {
+                string n = r.gameObject.name;
+                if (n.Contains("UpperRed")) r.material = redMat;
+                else if (n.Contains("LowerWhite") || n.Contains("ButtonCenter")) r.material = whiteMat;
+                else r.material = blackMat;
+            }
+        }
+
+        // 5. 標記拋球起點 (ThrowOrigin)
         GameObject throwOrigin = new GameObject("ThrowOrigin");
-        throwOrigin.transform.SetParent(trainerRoot.transform);
-        throwOrigin.transform.localPosition = new Vector3(0.65f, 1.5f, 0.45f);
+        throwOrigin.transform.SetParent(shoulderPivot.transform, false);
+        throwOrigin.transform.localPosition = new Vector3(0f, -0.60f, 0.35f);
+
+        // 6. 掛載動作控制器
+        TrainerController trainerController = trainerRoot.AddComponent<TrainerController>();
+        trainerController.bodyTransform = bodyObj.transform;
+        trainerController.rightShoulderPivot = shoulderPivot.transform;
+        if (handBall != null) trainerController.handBall = handBall.transform;
 
         CapsuleCollider col = trainerRoot.AddComponent<CapsuleCollider>();
         col.center = new Vector3(0, 1.0f, 0);

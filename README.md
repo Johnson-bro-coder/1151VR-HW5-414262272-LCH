@@ -66,7 +66,21 @@
 
 ---
 
-### 3. 精靈球拋射物理機制 (對應簡報 6-4、6-6 節)
+### 3. 訓練家投球動作系統 (Trainer Motion & Joints)
+- **關節樞紐架構 (`RightShoulderPivot`)**：
+  - 將右臂與手套綁定於肩關節原點 `(0.42, 1.45, 0.0)`，擺脫剛體旋轉破圖，符合真實人體肩胛運動樞紐。
+  - 手套處常駐待投展示精靈球 (`HandBall`)。
+- **自然待機動畫 (Idle Breathing)**：
+  - 待機狀態下軀幹自然微幅呼吸起伏 (`Mathf.Sin(Time.time * 2.5f) * 0.015f`)，手臂微風輕擺。
+- **三階段投球連貫動作 (`PlayThrowAnimation`)**：
+  - **階段 1：蓄力後拉 (Wind-up, 0.35s)**：軀幹側身微後仰，右臂大幅度向後上方拉開蓄力，視線鎖定右側寶可夢。
+  - **階段 2：發力向前揮擊 (Pitch & Release, 0.18s)**：身體急遽向前扭腰前傾發力，右肩關節由後向前下方大力甩臂揮擊！
+  - **出手精準同步**：在揮臂至最前點最高速瞬間，手部展示球隱藏，精確觸發回調自手掌產生具備物理動能的實體精靈球飛射而出！
+  - **階段 3：隨動收勢與回正 (Follow-through & Recovery, 0.40s)**：手臂順勢減速擺動，身體平滑回正，1 秒後手上重新凝現精靈球。
+
+---
+
+### 4. 精靈球拋射物理機制 (對應簡報 6-4、6-6 節)
 - **拋物線物理計算 (`PokeballGenerator.cs`)**：
   - 訓練家固定於左側 (`X = -3.8, Y = 0, Z = 5.0`)，寶可夢置於右側 (`X = 3.8, Y = 0, Z = 5.0`)。
   - 由左至右拋出時，利用重力與目標距離精確計算運動學出射向量：
@@ -85,7 +99,7 @@
 
 ---
 
-### 4. 碰撞判定、收服動畫與飛濺粒子特效 (對應簡報 6-4-6、6-5 節)
+### 5. 碰撞判定、收服動畫與飛濺粒子特效 (對應簡報 6-4-6、6-5 節)
 - **剛體凍結與特效釋出 (`OnCollisionEnter`)**：
   - 撞擊瞬間將剛體設為 `isKinematic = true`，使球固定於碰撞點，避免無效彈跳。
   - 立即觸發 `ParticleSystem.Play()` 播放飛濺粒子特效：
@@ -100,7 +114,7 @@
 
 ---
 
-### 5. 跨平台手機移植與操作支援 (對應簡報 6-2-2、6-7 節)
+### 6. 跨平台手機移植與操作支援 (對應簡報 6-2-2、6-7 節)
 - **觸控與解析度相容**：
   - 支援手機螢幕單指觸碰 (Tap) 射線投球（Unity 單指點擊自動對應 `Input.mousePosition` 與 `GetMouseButtonDown(0)`）。
   - 配置自動縮放的 HUD 介面（提供「由左至右拋球」與「重置場景」觸控按鈕）。
@@ -136,6 +150,8 @@ Unity HW5/
 │   │   ├── Pokeball.obj
 │   │   ├── Pokemon.obj
 │   │   ├── Trainer.obj
+│   │   ├── Trainer_Body.obj
+│   │   ├── Trainer_RightArm.obj
 │   │   └── Tree.obj
 │   ├── Prefabs/
 │   │   └── PokeballPrefab.prefab
@@ -148,7 +164,8 @@ Unity HW5/
 │   │   ├── GameDirector.cs
 │   │   ├── PokeballController.cs
 │   │   ├── PokeballGenerator.cs
-│   │   └── PokemonTarget.cs
+│   │   ├── PokemonTarget.cs
+│   │   └── TrainerController.cs
 │   └── Textures/
 │       ├── GrassTexture.png
 │       └── RockTexture.png

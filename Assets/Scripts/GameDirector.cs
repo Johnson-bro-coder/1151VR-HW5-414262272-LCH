@@ -78,6 +78,11 @@ public class GameDirector : MonoBehaviour
         {
             pokemon.ResetPokemon();
         }
+        TrainerController trainer = FindFirstObjectByType<TrainerController>();
+        if (trainer != null)
+        {
+            trainer.ResetTrainer();
+        }
         // 清理所有場上的精靈球 Clone
         PokeballController[] balls = FindObjectsByType<PokeballController>(FindObjectsSortMode.None);
         foreach (var b in balls)

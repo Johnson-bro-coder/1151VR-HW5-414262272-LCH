@@ -72,7 +72,7 @@ def draw_hud(draw, status_text, is_success=False):
     draw.rectangle([width // 2 + 20, height - 65, width // 2 + 220, height - 20], fill=(45, 160, 60), outline=(255, 255, 255), width=2)
     draw.text((width // 2 + 50, height - 50), "重置寶可夢與場景", fill=(255, 255, 255))
 
-def draw_trainer(draw, x, y):
+def draw_trainer(draw, x, y, pose="idle"):
     # Trainer Ash style figure
     # Shadow
     draw.ellipse([x - 40, y + 175, x + 60, y + 195], fill=(35, 70, 25))
@@ -87,10 +87,21 @@ def draw_trainer(draw, x, y):
     draw.rectangle([x - 8, y + 30, x + 8, y + 95], fill=(240, 240, 240))
     # Left Arm
     draw.rectangle([x - 38, y + 35, x - 26, y + 95], fill=(25, 75, 160))
-    # Right Arm (Posed throwing forward-right)
-    draw.polygon([(x + 25, y + 35), (x + 75, y + 20), (x + 85, y + 35), (x + 25, y + 55)], fill=(25, 75, 160))
-    # Glove
-    draw.ellipse([x + 75, y + 15, x + 95, y + 35], fill=(40, 150, 70))
+
+    if pose == "idle":
+        # Right Arm naturally hanging with ball in hand
+        draw.rectangle([x + 26, y + 35, x + 38, y + 85], fill=(25, 75, 160))
+        draw.ellipse([x + 24, y + 80, x + 40, y + 98], fill=(40, 150, 70)) # Glove
+        draw_pokeball(draw, x + 32, y + 90, radius=9) # HandBall
+    elif pose == "throw":
+        # Forward Pitch Action - Arm thrusting forward-right powerfully
+        draw.polygon([(x + 20, y + 35), (x + 85, y + 10), (x + 95, y + 25), (x + 25, y + 55)], fill=(25, 75, 160))
+        draw.ellipse([x + 85, y + 8, x + 105, y + 28], fill=(40, 150, 70)) # Glove open
+    elif pose == "follow_through":
+        # Follow through downward
+        draw.polygon([(x + 20, y + 40), (x + 70, y + 75), (x + 60, y + 88), (x + 15, y + 55)], fill=(25, 75, 160))
+        draw.ellipse([x + 60, y + 78, x + 76, y + 96], fill=(40, 150, 70))
+
     # Head & Cap
     draw.ellipse([x - 18, y - 5, x + 18, y + 30], fill=(245, 205, 175))
     draw.pieslice([x - 22, y - 25, x + 22, y + 15], 180, 360, fill=(220, 35, 35))
@@ -151,20 +162,20 @@ img1.save(os.path.join(ss_dir, "capture_gameplay.png"))
 print("Saved capture_gameplay.png")
 
 # -------------------------------------------------------------
-# Screenshot 2: Pokeball Throw Left-to-Right
+# Screenshot 2: Pokeball Throw Left-to-Right with Trainer Motion
 # -------------------------------------------------------------
 img2, draw2 = create_base_canvas()
-draw_trainer(draw2, 280, 380)
+draw_trainer(draw2, 280, 380, pose="throw")
 draw_pokemon(draw2, 980, 440, 1.0)
 # Parabolic Trajectory dots (Left to Right)
 for t_step in range(15):
     t = t_step / 14.0
-    bx = 360 + t * (950 - 360)
-    by = 410 - math.sin(t * math.pi) * 230 + t * 40
+    bx = 370 + t * (950 - 370)
+    by = 390 - math.sin(t * math.pi) * 230 + t * 40
     draw2.ellipse([bx - 4, by - 4, bx + 4, by + 4], fill=(255, 235, 80))
 # Current ball position mid-flight
-draw_pokeball(draw2, 650, 210, 24)
-draw_hud(draw2, "精靈球由左至右拋物線彈飛而出 (Physics AddForce & Rigidbody)")
+draw_pokeball(draw2, 650, 200, 24)
+draw_hud(draw2, "訓練家蓄力大力揮臂拋出！精靈球由左至右拋物線彈飛 (Trainer Throw Motion & Physics)")
 img2.save(os.path.join(ss_dir, "pokeball_throw.png"))
 print("Saved pokeball_throw.png")
 
@@ -172,7 +183,7 @@ print("Saved pokeball_throw.png")
 # Screenshot 3: Capture Impact & Success Sparks
 # -------------------------------------------------------------
 img3, draw3 = create_base_canvas()
-draw_trainer(draw3, 280, 380)
+draw_trainer(draw3, 280, 380, pose="follow_through")
 # Pokemon absorbed (small scale with red energy)
 draw_pokemon(draw3, 960, 470, 0.35)
 # Absorption Energy Cone & Sparks

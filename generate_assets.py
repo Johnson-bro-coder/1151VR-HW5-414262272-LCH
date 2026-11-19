@@ -266,6 +266,37 @@ def generate_trainer(filepath):
     write_obj_file(filepath, groups)
     print(f"Generated Trainer model: {filepath}")
 
+def generate_articulated_trainer(body_path, arm_path):
+    # 1. Body
+    groups_body = []
+    v_cap, f_cap = create_sphere(center=(0, 1.82, 0), radius=0.28, lat_steps=12, lon_steps=16, y_min=0.0, y_max=1.0)
+    groups_body.append(dict(name="Trainer_CapRed", vertices=v_cap, faces=f_cap))
+    v_visor, f_visor = create_box((-0.24, 1.76, 0.15), (0.24, 1.81, 0.45))
+    groups_body.append(dict(name="Trainer_CapVisorRed", vertices=v_visor, faces=f_visor))
+    v_head, f_head = create_sphere(center=(0, 1.68, 0.05), radius=0.24, lat_steps=12, lon_steps=16)
+    groups_body.append(dict(name="Trainer_HeadSkin", vertices=v_head, faces=f_head))
+    v_torso, f_torso = create_cylinder(center=(0, 1.25, 0), radius_bottom=0.28, radius_top=0.34, height=0.65, steps=16)
+    groups_body.append(dict(name="Trainer_JacketBlue", vertices=v_torso, faces=f_torso))
+    v_arm_l, f_arm_l = create_cylinder(center=(-0.42, 1.15, -0.05), radius_bottom=0.08, radius_top=0.09, height=0.55, steps=12)
+    groups_body.append(dict(name="Trainer_LeftArmBlue", vertices=v_arm_l, faces=f_arm_l))
+    v_leg_l, f_leg_l = create_cylinder(center=(-0.16, 0.50, 0), radius_bottom=0.12, radius_top=0.14, height=0.85, steps=12)
+    groups_body.append(dict(name="Trainer_PantsLegLeft", vertices=v_leg_l, faces=f_leg_l))
+    v_leg_r, f_leg_r = create_cylinder(center=(0.16, 0.50, 0.05), radius_bottom=0.12, radius_top=0.14, height=0.85, steps=12)
+    groups_body.append(dict(name="Trainer_PantsLegRight", vertices=v_leg_r, faces=f_leg_r))
+    v_shoe_l, f_shoe_l = create_box((-0.26, 0.0, -0.12), (-0.06, 0.16, 0.20))
+    groups_body.append(dict(name="Trainer_ShoeLeftRed", vertices=v_shoe_l, faces=f_shoe_l))
+    v_shoe_r, f_shoe_r = create_box((0.06, 0.0, -0.07), (0.26, 0.16, 0.25))
+    groups_body.append(dict(name="Trainer_ShoeRightRed", vertices=v_shoe_r, faces=f_shoe_r))
+    write_obj_file(body_path, groups_body)
+
+    # 2. Right Arm with pivot at Shoulder (0, 0, 0)
+    groups_arm = []
+    v_arm_r, f_arm_r = create_cylinder(center=(0, -0.28, 0.05), radius_bottom=0.08, radius_top=0.095, height=0.56, steps=12)
+    groups_arm.append(dict(name="Trainer_RightArmBlue", vertices=v_arm_r, faces=f_arm_r))
+    v_glove, f_glove = create_sphere(center=(0, -0.60, 0.10), radius=0.11, lat_steps=10, lon_steps=12)
+    groups_arm.append(dict(name="Trainer_ThrowingGloveGreen", vertices=v_glove, faces=f_glove))
+    write_obj_file(arm_path, groups_arm)
+
 # --- Tree Model ---
 def generate_tree(filepath):
     groups = []
@@ -422,6 +453,7 @@ if __name__ == "__main__":
     generate_pokeball(os.path.join(models_dir, "Pokeball.obj"))
     generate_pokemon(os.path.join(models_dir, "Pokemon.obj"))
     generate_trainer(os.path.join(models_dir, "Trainer.obj"))
+    generate_articulated_trainer(os.path.join(models_dir, "Trainer_Body.obj"), os.path.join(models_dir, "Trainer_RightArm.obj"))
     generate_tree(os.path.join(models_dir, "Tree.obj"))
     
     generate_throw_sound(os.path.join(audio_dir, "Pokeball_Throw.wav"))
